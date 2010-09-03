@@ -36,6 +36,7 @@
 
         var layout = buildLayout(originalTable, options);
 
+        //TODO: refactor into methods
         var scrollAreaWidth = options.width - options.fixedColumnWidth;
 
         $(".fixedContainer ." + options.classHeader, layout).css({
@@ -67,12 +68,14 @@
             "padding": "0"
         });
 
+        // TODO: why are some widths set via css and some with width() calls?
         $("." + options.classColumn, layout).width(options.fixedColumnWidth);
         $("." + options.classColumn, layout).height(options.height);
         $("." + options.classColumn + " ." + options.classHeader + " table tbody tr td", layout).width(options.fixedColumnWidth);
         $("." + options.classColumn + " ." + options.classFooter + " table tbody tr td", layout).width(options.fixedColumnWidth);
 
         //adjust the table widths in the fixedContainer area
+        //TODO: rename variables. Think about methods to make access easier and reduce noise.
         var fh = $(".fixedContainer > ." + options.classHeader + " > table", layout);
         var ft = $(".fixedContainer > .fixedTable > table", layout);
         var ff = $(".fixedContainer > ." + options.classFooter + " > table", layout);
@@ -98,7 +101,7 @@
             if (tblFoot.length) { $(tblFoot).width(maxWidth); }
         });
 
-
+        //TODO: why the 2 "h" declarations? and why are we setting the height twice?
         //set the height of the table area, minus the heights of the header/footer.
         // note: we need to do this after the other adjustments, otherwise these changes would be overwrote
         var h = options.height - parseInt($(".fixedContainer > ." + options.classHeader, layout).height()) - parseInt($(".fixedContainer > ." + options.classFooter, layout).height());
@@ -196,15 +199,13 @@
                 });
 
             });
-            //The header *should* be added to our head area now, so we can remove the table header
+
             $(section, src).remove();
         }
     }
 
-    // ***********************************************
-    // Handle the scroll events
-    function handleScroll(mainid, options) {
-        //Find the scrolling offsets
+    function handleScroll(mainid, options)
+    {
         var tblarea = $(mainid + " .fixedContainer > .fixedTable");
         var x = tblarea[0].scrollLeft;
         var y = tblarea[0].scrollTop;
@@ -214,8 +215,6 @@
         $(mainid + " .fixedContainer > ." + options.classFooter)[0].scrollLeft = x;
     }
 
-    // ***********************************************
-    //  Reset the heights of the rows in our fixedColumn area
     function adjustSizes(mainid, options)
     {
         var mainTableHeight = options.height;
@@ -232,6 +231,7 @@
 
         //adjust the cell widths so the header/footer and table cells line up
         var ccount = $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").size();
+        //TODO: why do we need this array? And whats with the modulo ops? Cant we just use smarter selectors?
         var widthArray = new Array();
         var totall = 0;
 
@@ -271,11 +271,12 @@
             });
         }
 
-        var contenttbH = $(mainid + " .fixedContainer .fixedTable table").height();
-        if (contenttbH < mainTableHeight)
+        var contentTableHeight = $(mainid + " .fixedContainer .fixedTable table").height();
+        //TODO: this seems like a bad boundary condition. It doesn't take into account height of header/footer.
+        if ( contentTableHeight < mainTableHeight )
         {
-            $(mainid + " ." + options.classColumn + " .fixedTable").height(contenttbH + 20);
-            $(mainid + " .fixedContainer .fixedTable").height(contenttbH + 20);
+            $(mainid + " ." + options.classColumn + " .fixedTable").height(contentTableHeight + 20);
+            $(mainid + " .fixedContainer .fixedTable").height(contentTableHeight + 20);
 
             $(mainid + " .fixedContainer ." + options.classHeader).width($(mainid + " .fixedContainer ." + options.classHeader).width() + 16);
             $(mainid + " .fixedContainer ." + options.classFooter).width($(mainid + " .fixedContainer ." + options.classHeader).width());
