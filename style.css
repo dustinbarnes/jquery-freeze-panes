@@ -1,0 +1,17 @@
+.fixedHead td, .fixedFoot td {
+    padding: 0;
+    border: 1px solid #eaeaea;
+}
+
+.fixedTable td {
+    padding: 0;
+    border: 1px solid #eaeaea;
+}
+
+.fixedColumn .fixedTable td {
+
+}
+
+.freezePane tbody td {
+    min-width: 125px;
+}

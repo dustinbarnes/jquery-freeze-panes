@@ -1,3 +1,22 @@
+/**
+ * From http://github.com/dustinbarnes/jquery-freeze-panes
+ *
+ * Based on http://plugins.jquery.com/project/FixedTable
+ * Several issues were found. Logic errors, poor style, inconsistent functionality,
+ * redundant calls, etc., so I am rewriting and optimizing the plugin.
+ *
+ * Call like so:
+ * <script type="text/javascript">
+ *     $(document).ready(function()
+ *     {
+ *         $("#freezePanes").freezePanes();
+ *     });
+ * </script>
+ *
+ * The only extra markup required is a wrapping div (with an id) for the table.
+ * See samples on github for more ideas. 
+ */
+
 (function($) {
     var freezePanesDefaults = {
         width: $(window).width() - 20,
@@ -203,27 +222,15 @@
 
         // row height
         $(mainid + " ." + options.classColumn + " .fixedTable table tbody tr").each(function(i) {
-            var maxHeight = 0;
             var fixedColumnHeight = $(this).height();
             var contentColumnHeight = $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).height();
+            var maxHeight = Math.max(contentColumnHeight, fixedColumnHeight);
 
-            if (contentColumnHeight > fixedColumnHeight)
-            {
-                maxHeight = contentColumnHeight;
-            }
-            else
-            {
-                maxHeight = fixedColumnHeight;
-            }
-
-            $(this).height(maxHeight);
             $(this).children("td").height(maxHeight);
             $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).children("td").height(maxHeight);
         });
 
         //adjust the cell widths so the header/footer and table cells line up
-        var htbale = $(mainid + " .fixedContainer ." + options.classHeader + " table");
-        var ttable = $(mainid + " .fixedContainer .fixedTable table");
         var ccount = $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").size();
         var widthArray = new Array();
         var totall = 0;

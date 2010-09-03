@@ -2,9 +2,73 @@
         "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <title></title>
+    <title>Test with multiple tables</title>
+    <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/reset-fonts-grids/reset-fonts-grids.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="testdata.js"></script>
+    <script type="text/javascript" src="jquery.freezePanes.js"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function()
+        {
+            testdata("#freezePanes1");
+            $("#freezePanes1").freezePanes({
+                width: 500,
+                height: 300,
+                fixedColumnWidth: 125
+            });
+
+            testdata("#freezePanes2", {
+                freaky: true
+            });
+            $("#freezePanes2").freezePanes({
+                width: 500,
+                height: 300,
+                fixedColumnWidth: 125
+            });
+
+            testdata("#freezePanes3", {
+                suppressRowColCounter: true
+            });
+            $("#freezePanes3").freezePanes({
+                width: 500,
+                height: 300,
+                fixedColumnWidth: 125
+            });
+        });
+    </script>
+    <style type="text/css">
+        #freezePanesWrap1, #freezePanesWrap2, #freezePanesWrap3 {
+            margin-bottom: 2em;
+            overflow: auto;
+        }
+    </style>
 </head>
 <body>
-
+    <div id="freezePanesWrap1">
+        <table id="freezePanes1" class="freezePane">
+            <!-- confused? see the testData() call -->
+            <thead></thead>
+            <tfoot></tfoot>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="freezePanesWrap2">
+        <table id="freezePanes2" class="freezePane">
+            <!-- confused? see the testData() call -->
+            <thead></thead>
+            <tfoot></tfoot>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div id="freezePanesWrap3">
+        <table id="freezePanes3" class="freezePane">
+            <!-- confused? see the testData() call -->
+            <thead></thead>
+            <tfoot></tfoot>
+            <tbody></tbody>
+        </table>
+    </div>
 </body>
 </html>
