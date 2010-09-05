@@ -14,7 +14,7 @@
  * </script>
  *
  * The only extra markup required is a wrapping div (with an id) for the table.
- * See samples on github for more ideas. 
+ * See samples on github for more ideas.
  */
 
 (function($) {
@@ -50,7 +50,7 @@
             width: (scrollAreaWidth + 16) + "px",
             "overflow": "auto"
         });
-        
+
         $(".fixedContainer", layout).css({
             width: (scrollAreaWidth) + "px",
             "float": "left"
@@ -61,66 +61,16 @@
             "float": "left",
             "overflow": "hidden"
         });
-        
+
         $("." + options.classColumn + " > .fixedTable", layout).css({
             "width": options.fixedColumnWidth + "px",
-            "overflow": "hidden",
-            "padding": "0"
+            "overflow": "hidden"
         });
 
-        // TODO: why are some widths set via css and some with width() calls?
-        $("." + options.classColumn, layout).width(options.fixedColumnWidth);
-        $("." + options.classColumn, layout).height(options.height);
-        $("." + options.classColumn + " ." + options.classHeader + " table tbody tr td", layout).width(options.fixedColumnWidth);
-        $("." + options.classColumn + " ." + options.classFooter + " table tbody tr td", layout).width(options.fixedColumnWidth);
+        adjustSizes(wrappingDivId, layout, options);
+        applyScrollHandler(wrappingDivId, layout, options);
 
-        //adjust the table widths in the fixedContainer area
-        //TODO: rename variables. Think about methods to make access easier and reduce noise.
-        var fh = $(".fixedContainer > ." + options.classHeader + " > table", layout);
-        var ft = $(".fixedContainer > .fixedTable > table", layout);
-        var ff = $(".fixedContainer > ." + options.classFooter + " > table", layout);
-
-        var maxWidth = fh.width();
-        if (ft.length > 0 && ft.width() > maxWidth) { maxWidth = ft.width(); }
-        if (ff.length > 0 && ff.width() > maxWidth) { maxWidth = ff.width(); }
-
-
-        if (fh.length) { fh.width(maxWidth); }
-        if (ft.length) { ft.width(maxWidth); }
-        if (ff.length) { ff.width(maxWidth); }
-
-        //adjust the widths of the fixedColumn header/footer to match the fixed columns themselves
-        $("." + options.classColumn + " > ." + options.classHeader + " > table > tbody > tr:first > td", layout).each(function(pos) {
-            var tblCell = $("." + options.classColumn + " > .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
-            var tblFoot = $("." + options.classColumn + " > ." + options.classFooter + " > table > tbody > tr:first > td:eq(" + pos + ")", layout);
-            var maxWidth = $(this).width();
-            if (tblCell.width() > maxWidth) { maxWidth = tblCell.width(); }
-            if (tblFoot.length && tblFoot.width() > maxWidth) { maxWidth = tblFoot.width(); }
-            $(this).width(maxWidth);
-            $(tblCell).width(maxWidth);
-            if (tblFoot.length) { $(tblFoot).width(maxWidth); }
-        });
-
-        //TODO: why the 2 "h" declarations? and why are we setting the height twice?
-        //set the height of the table area, minus the heights of the header/footer.
-        // note: we need to do this after the other adjustments, otherwise these changes would be overwrote
-        var h = options.height - parseInt($(".fixedContainer > ." + options.classHeader, layout).height()) - parseInt($(".fixedContainer > ." + options.classFooter, layout).height());
-        //sanity check
-        if (h < 0) { h = options.height; }
-        $(".fixedContainer > .fixedTable", layout).height(h);
-        $("." + options.classColumn + " > .fixedTable", layout).height(h);
-
-        //Adjust the fixed column area if we have a horizontal scrollbar on the main table
-        // - specifically, make sure our fixedTable area matches the main table area minus the scrollbar height,
-        //   and the fixed column footer area lines up with the main footer area (shift down by the scrollbar height)
-        var h = $(".fixedContainer > .fixedTable", layout)[0].offsetHeight - 16;
-        $("." + options.classColumn + " > .fixedTable", layout).height(h);  //make sure the row area of the fixed column matches the height of the main table, with the scrollbar
-
-        // Apply the scroll handlers
-        $(".fixedContainer > .fixedTable", layout).scroll(function() { handleScroll(wrappingDivId, options); });
-
-        adjustSizes(wrappingDivId, options);
-        return originalTable;
+        return layout;
     };
 
     function buildLayout(src, options)
@@ -204,80 +154,36 @@
         }
     }
 
-    function handleScroll(mainid, options)
+    function applyScrollHandler(mainid, layout, options)
     {
-        var tblarea = $(mainid + " .fixedContainer > .fixedTable");
-        var x = tblarea[0].scrollLeft;
-        var y = tblarea[0].scrollTop;
+        $(".fixedContainer > .fixedTable", layout).scroll(function() {
+            var tblarea = $(mainid + " .fixedContainer > .fixedTable");
+            var x = tblarea[0].scrollLeft;
+            var y = tblarea[0].scrollTop;
 
-        $(mainid + " ." + options.classColumn + " > .fixedTable")[0].scrollTop = y;
-        $(mainid + " .fixedContainer > ." + options.classHeader)[0].scrollLeft = x;
-        $(mainid + " .fixedContainer > ." + options.classFooter)[0].scrollLeft = x;
+            $(mainid + " ." + options.classColumn + " > .fixedTable")[0].scrollTop = y;
+            $(mainid + " .fixedContainer > ." + options.classHeader)[0].scrollLeft = x;
+            $(mainid + " .fixedContainer > ." + options.classFooter)[0].scrollLeft = x;
+        });
     }
 
-    function adjustSizes(mainid, options)
+    function adjustSizes(mainid, layout, options)
     {
-        var mainTableHeight = options.height;
+        setScrollingAreaHeights(layout, options);
+        setRowHeights(mainid, options);
+        setColumnWidths(mainid, layout, options);
+        adjustTablesForScrollBars(mainid, options);
+    }
 
-        // row height
-        $(mainid + " ." + options.classColumn + " .fixedTable table tbody tr").each(function(i) {
-            var fixedColumnHeight = $(this).height();
-            var contentColumnHeight = $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).height();
-            var maxHeight = Math.max(contentColumnHeight, fixedColumnHeight);
-
-            $(this).children("td").height(maxHeight);
-            $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).children("td").height(maxHeight);
-        });
-
-        //adjust the cell widths so the header/footer and table cells line up
-        var ccount = $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").size();
-        //TODO: why do we need this array? And whats with the modulo ops? Cant we just use smarter selectors?
-        var widthArray = new Array();
-        var totall = 0;
-
-        $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").each(function(pos) {
-            var cwidth = $(this).width();
-            $(mainid + " .fixedContainer .fixedTable table tbody td").each(function(i) {
-                if (i % ccount == pos) {
-                    if ($(this).width() > cwidth) {
-                        cwidth = $(this).width();
-                    }
-                }
-            });
-            widthArray[pos] = cwidth;
-            totall += (cwidth + 2);
-        });
-
-        $(mainid + " .fixedContainer ." + options.classHeader + " table").width(totall + 100);
-        $(mainid + " .fixedContainer .fixedTable table").width(totall + 100);
-        $(mainid + " .fixedContainer ." + options.classFooter + " table").width(totall + 100);
-        for (i = 0; i < widthArray.length; i++) {
-            $(mainid + " .fixedContainer ." + options.classHeader + " table tr td").each(function(j) {
-                if (j % ccount == i) {
-                    $(this).attr("width", widthArray[i] + "px");
-                }
-            });
-
-            $(mainid + " .fixedContainer .fixedTable table tr td").each(function(j) {
-                if (j % ccount == i) {
-                    $(this).attr("width", widthArray[i] + "px");
-                }
-            });
-
-            $(mainid + " .fixedContainer ." + options.classFooter + " table tr td").each(function(j) {
-                if (j % ccount == i) {
-                    $(this).attr("width", widthArray[i] + "px");
-                }
-            });
-        }
-
+    function adjustTablesForScrollBars(mainid, options)
+    {
         var contentTableHeight = $(mainid + " .fixedContainer .fixedTable table").height();
-        //TODO: this seems like a bad boundary condition. It doesn't take into account height of header/footer.
-        if ( contentTableHeight < mainTableHeight )
+        if ( contentTableHeight < options.height )
         {
             $(mainid + " ." + options.classColumn + " .fixedTable").height(contentTableHeight + 20);
             $(mainid + " .fixedContainer .fixedTable").height(contentTableHeight + 20);
 
+            // add back 16px for lack of scroll bar
             $(mainid + " .fixedContainer ." + options.classHeader).width($(mainid + " .fixedContainer ." + options.classHeader).width() + 16);
             $(mainid + " .fixedContainer ." + options.classFooter).width($(mainid + " .fixedContainer ." + options.classHeader).width());
         }
@@ -289,13 +195,21 @@
                 "top": 16
             });
         }
-
-        adjustCorners(mainid, options)
     }
 
-    function adjustCorners(mainid, options)
+    function setRowHeights(mainid, options)
     {
-        //Top fixed cell
+        // Body
+        $(mainid + " ." + options.classColumn + " .fixedTable table tbody tr").each(function(i) {
+            var fixedColumnHeight = $(this).height();
+            var contentColumn = $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i);
+            var maxHeight = Math.max(contentColumn.height(), fixedColumnHeight);
+
+            $(this).children("td").height(maxHeight);
+            $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).children("td").height(maxHeight);
+        });
+
+        // Header
         var topLeftCorner = $(mainid + " ." + options.classColumn + " ." + options.classHeader + " table tbody tr").eq(0);
         var topHeadRow = $(mainid + " .fixedContainer ." + options.classHeader + " table tbody tr");
 
@@ -304,7 +218,7 @@
         topLeftCorner.children("td").height(maxHeight);
         topHeadRow.children("td").height(maxHeight);
 
-        //Bottom fixed cell
+        // Footer
         var bottomLeftCorner = $(mainid + " ." + options.classColumn + " ." + options.classFooter + " table tbody tr").eq(0);
         var bottomFootRow = $(mainid + " .fixedContainer ." + options.classFooter + " table tbody tr");
 
@@ -312,5 +226,59 @@
 
         bottomLeftCorner.children("td").height(maxHeight);
         bottomFootRow.children("td").height(maxHeight);
+    }
+
+    function setScrollingAreaHeights(layout, options)
+    {
+        var scrollAreaHeight = options.height - $(".fixedContainer > ." + options.classHeader, layout).height()
+                - parseInt($(".fixedContainer > ." + options.classFooter, layout).height());
+
+        $(".fixedContainer > .fixedTable", layout).height(scrollAreaHeight);
+        // remove 16px for horizontal scrollbar height
+        $("." + options.classColumn + " > .fixedTable", layout).height(scrollAreaHeight - 16);
+    }
+
+    function setColumnWidths(mainid, layout, options)
+    {
+        setFixedColumnWidths(layout, options);
+        //TODO: why do we need this array? 
+        var widthArray = new Array();
+        var totall = 0;
+
+        $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").each(function(pos)
+        {
+            var cwidth = $(this).width();
+            var bodyColumn = $(mainid + " .fixedContainer .fixedTable table tbody td:eq(" + pos + ")");
+            cwidth = Math.max(cwidth, $(bodyColumn).width());
+            widthArray[pos] = cwidth;
+            totall += (cwidth + 2);
+        });
+
+        //TODO: why +100? just to force scroll bars?
+        $(mainid + " .fixedContainer ." + options.classHeader + " table").width(totall + 100);
+        $(mainid + " .fixedContainer .fixedTable table").width(totall + 100);
+        $(mainid + " .fixedContainer ." + options.classFooter + " table").width(totall + 100);
+        for ( var i = 0; i < widthArray.length; i++ )
+        {
+            $(mainid + " .fixedContainer ." + options.classHeader + " table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
+            $(mainid + " .fixedContainer .fixedTable table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
+            $(mainid + " .fixedContainer ." + options.classFooter + " table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
+        }
+    }
+
+    function setFixedColumnWidths(layout, options)
+    {
+        $("." + options.classColumn + " > ." + options.classHeader + " > table > tbody > tr:first > td", layout).each(function(pos)
+        {
+            var tblCell = $("." + options.classColumn + " > .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
+            var tblFoot = $("." + options.classColumn + " > ." + options.classFooter + " > table > tbody > tr:first > td:eq(" + pos + ")", layout);
+
+            //something funky requires the 2 offset. cant place it...
+            var width = options.fixedColumnWidth - 2;
+
+            $(this).width(width);
+            $(tblCell).width(width);
+            $(tblFoot).width(width);
+        });
     }
 })(jQuery);
