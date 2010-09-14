@@ -1,6 +1,4 @@
 /**
- * From http://github.com/dustinbarnes/jquery-freeze-panes
- *
  * Based on http://plugins.jquery.com/project/FixedTable
  * Several issues were found. Logic errors, poor style, inconsistent functionality,
  * redundant calls, etc., so I am rewriting and optimizing the plugin.
@@ -19,27 +17,22 @@
 
 (function($) {
     var freezePanesDefaults = {
-        width: $(window).width() - 20,
+        width: $(window).width() - 40,
         height: $(window).height() - 20,
         fixedFirstColumn: true,
-        classHeader: "fixedHead",
-        classFooter: "fixedFoot",
-        classColumn: "fixedColumn",
-        fixedColumnWidth: 225
+        fixedColumnWidth: 225,
+        minColumnWidth: 1
     };
 
     $.fn.freezePanes = function(opts) {
-        // grab the parent div id for future reference
-        var wrappingDivId = "#" + $(this.get(0)).parent().get(0).id;
         var options = $.extend({}, freezePanesDefaults, opts);
         var originalTable = this;
 
         var layout = buildLayout(originalTable, options);
 
-        //TODO: refactor into methods
         var scrollAreaWidth = options.width - options.fixedColumnWidth;
 
-        $(".fixedContainer ." + options.classHeader, layout).css({
+        $(".fixedContainer .fixedHead", layout).css({
             width: (scrollAreaWidth) + "px",
             "float": "left",
             "overflow": "hidden"
@@ -56,19 +49,27 @@
             "float": "left"
         });
 
-        $(".fixedContainer ." + options.classFooter, layout).css({
+        $(".fixedContainer .fixedFoot", layout).css({
             width: (scrollAreaWidth) + "px",
             "float": "left",
             "overflow": "hidden"
         });
 
-        $("." + options.classColumn + " > .fixedTable", layout).css({
+        $(".fixedColumn > .fixedTable", layout).css({
             "width": options.fixedColumnWidth + "px",
             "overflow": "hidden"
         });
 
-        adjustSizes(wrappingDivId, layout, options);
-        applyScrollHandler(wrappingDivId, layout, options);
+        $(".fixedColumn .fixedHead", layout).css({
+            "width": options.fixedColumnWidth + "px"
+        });
+
+        $(".fixedColumn .fixedFoot", layout).css({
+            "width": options.fixedColumnWidth + "px"
+        });
+
+        adjustSizes(layout, options);
+        applyScrollHandler(layout, options);
 
         return layout;
     };
@@ -78,16 +79,16 @@
         var fixedArea = $("<div class=\"fixedArea\"></div>").appendTo($(src).parent());
 
         //fixed column items
-        var fixedColumn = $("<div class=\"" + options.classColumn + "\" style=\"float: left;\"></div>").appendTo(fixedArea);
-        var fixedColumnHead = $("<div class=\"" + options.classHeader + "\"></div>").appendTo(fixedColumn);
+        var fixedColumn = $("<div class=\"fixedColumn\" style=\"float: left;\"></div>").appendTo(fixedArea);
+        var fixedColumnHead = $("<div class=\"fixedHead\"></div>").appendTo(fixedColumn);
         var fixedColumnBody = $("<div class=\"fixedTable\"></div>").appendTo(fixedColumn);
-        var fixedColumnFooter = $("<div class=\"" + options.classFooter + "\"></div>").appendTo(fixedColumn);
+        var fixedColumnFooter = $("<div class=\"fixedFoot\"></div>").appendTo(fixedColumn);
 
         //fixed container items
         var contentContainer = $("<div class=\"fixedContainer\"></div>").appendTo(fixedArea);
-        var contentContainerHeader = $("<div class=\"" + options.classHeader + "\"></div>").appendTo(contentContainer);
+        var contentContainerHeader = $("<div class=\"fixedHead\"></div>").appendTo(contentContainer);
         var contentContainerBody = $("<div class=\"fixedTable\"></div>").appendTo(contentContainer);
-        var contentContainerFooter = $("<div class=\"" + options.classFooter + "\"></div>").appendTo(contentContainer);
+        var contentContainerFooter = $("<div class=\"fixedFoot\"></div>").appendTo(contentContainer);
 
         //create the fixed column area
         if ( options.fixedFirstColumn )
@@ -109,7 +110,7 @@
 
     function buildFixedColumns(src, section, target)
     {
-        if ($(section, src).length) {
+        if ($("> " + section, src).length) {
             var colHead = $("<table></table>").appendTo(target);
 
             //If we have a thead or tfoot, we're looking for "TH" elements, otherwise we're looking for "TD" elements
@@ -120,7 +121,7 @@
             }
 
             //check each of the rows in the thead
-            $(section + " tr", src).each(function() {
+            $("> " + section + " > tr", src).each(function() {
                 var tr = $("<tr></tr>").appendTo(colHead);
                 $(cellType + ":first", this).each(function() {
                     $("<td>" + $(this).html() + "</td>").addClass(this.className).attr("id", this.id).appendTo(tr);
@@ -142,7 +143,7 @@
             //This function only manipulates scrollable headers and footers
             var cellType = "th";
 
-            $(section + " tr", src).each(function() {
+            $("> " + section + " > tr", src).each(function() {
                 var tr = $("<tr></tr>").appendTo(th);
                 $(cellType, this).each(function() {
                     $("<td>" + $(this).html() + "</td>").addClass(this.className).attr("id", this.id).appendTo(tr);
@@ -154,64 +155,64 @@
         }
     }
 
-    function applyScrollHandler(mainid, layout, options)
+    function applyScrollHandler(layout, options)
     {
         $(".fixedContainer > .fixedTable", layout).scroll(function() {
-            var tblarea = $(mainid + " .fixedContainer > .fixedTable");
+            var tblarea = $(".fixedContainer > .fixedTable", layout);
             var x = tblarea[0].scrollLeft;
             var y = tblarea[0].scrollTop;
 
-            $(mainid + " ." + options.classColumn + " > .fixedTable")[0].scrollTop = y;
-            $(mainid + " .fixedContainer > ." + options.classHeader)[0].scrollLeft = x;
-            $(mainid + " .fixedContainer > ." + options.classFooter)[0].scrollLeft = x;
+            $(".fixedColumn > .fixedTable", layout)[0].scrollTop = y;
+            $(".fixedContainer > .fixedHead", layout)[0].scrollLeft = x;
+            $(".fixedContainer > .fixedFoot", layout)[0].scrollLeft = x;
         });
     }
 
-    function adjustSizes(mainid, layout, options)
+    function adjustSizes(layout, options)
     {
         setScrollingAreaHeights(layout, options);
-        setRowHeights(mainid, options);
-        setColumnWidths(mainid, layout, options);
-        adjustTablesForScrollBars(mainid, options);
+        setRowHeights(layout, options);
+        setColumnWidths(layout, options);
+        adjustTablesForScrollBars(layout, options);
     }
 
-    function adjustTablesForScrollBars(mainid, options)
+    function adjustTablesForScrollBars(layout, options)
     {
-        var contentTableHeight = $(mainid + " .fixedContainer .fixedTable table").height();
+        var contentTableHeight = $(".fixedContainer .fixedTable > table", layout).height();
         if ( contentTableHeight < options.height )
         {
-            $(mainid + " ." + options.classColumn + " .fixedTable").height(contentTableHeight + 20);
-            $(mainid + " .fixedContainer .fixedTable").height(contentTableHeight + 20);
+            $(".fixedColumn .fixedTable", layout).height(contentTableHeight + 20);
+            $(".fixedContainer .fixedTable", layout).height(contentTableHeight + 20);
 
             // add back 16px for lack of scroll bar
-            $(mainid + " .fixedContainer ." + options.classHeader).width($(mainid + " .fixedContainer ." + options.classHeader).width() + 16);
-            $(mainid + " .fixedContainer ." + options.classFooter).width($(mainid + " .fixedContainer ." + options.classHeader).width());
+            $(".fixedContainer .fixedHead", layout).width($(".fixedContainer .fixedHead", layout).width() + 16);
+            $(".fixedContainer .fixedFoot", layout).width($(".fixedContainer .fixedHead", layout).width());
         }
         else
         {
             //offset the footer by the height of the scrollbar so that it lines up right.
-            $(mainid + " ." + options.classColumn + " > ." + options.classFooter).css({
+            $(".fixedColumn > .fixedFoot", layout).css({
                 "position": "relative",
                 "top": 16
             });
         }
     }
 
-    function setRowHeights(mainid, options)
+    function setRowHeights(layout, options)
     {
         // Body
-        $(mainid + " ." + options.classColumn + " .fixedTable table tbody tr").each(function(i) {
+        $(".fixedColumn .fixedTable > table > tbody > tr", layout).each(function(i) {
             var fixedColumnHeight = $(this).height();
-            var contentColumn = $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i);
+            var contentColumn = $(".fixedContainer .fixedTable > table > tbody > tr", layout).eq(i);
             var maxHeight = Math.max(contentColumn.height(), fixedColumnHeight);
 
             $(this).children("td").height(maxHeight);
-            $(mainid + " .fixedContainer .fixedTable table tbody tr").eq(i).children("td").height(maxHeight);
+            $(".fixedContainer .fixedTable > table > tbody > tr", layout).eq(i).children("td").height(maxHeight);
         });
 
         // Header
-        var topLeftCorner = $(mainid + " ." + options.classColumn + " ." + options.classHeader + " table tbody tr").eq(0);
-        var topHeadRow = $(mainid + " .fixedContainer ." + options.classHeader + " table tbody tr");
+        var topLeftCorner = $(".fixedColumn .fixedHead > table > tbody > tr", layout).eq(0);
+        var topHeadRow = $(".fixedContainer .fixedHead > table > tbody > tr", layout);
 
         var maxHeight = Math.max(topLeftCorner.height(), topHeadRow.eq(0).height());
 
@@ -219,8 +220,8 @@
         topHeadRow.children("td").height(maxHeight);
 
         // Footer
-        var bottomLeftCorner = $(mainid + " ." + options.classColumn + " ." + options.classFooter + " table tbody tr").eq(0);
-        var bottomFootRow = $(mainid + " .fixedContainer ." + options.classFooter + " table tbody tr");
+        var bottomLeftCorner = $(".fixedColumn .fixedFoot > table > tbody > tr", layout).eq(0);
+        var bottomFootRow = $(".fixedContainer .fixedFoot > table > tbody > tr", layout);
 
         maxHeight = Math.max(bottomLeftCorner.height(), bottomFootRow.eq(0).height());
 
@@ -230,55 +231,72 @@
 
     function setScrollingAreaHeights(layout, options)
     {
-        var scrollAreaHeight = options.height - $(".fixedContainer > ." + options.classHeader, layout).height()
-                - parseInt($(".fixedContainer > ." + options.classFooter, layout).height());
+        var scrollAreaHeight = options.height - $(".fixedContainer > .fixedHead", layout).height()
+                - parseInt($(".fixedContainer > .fixedFoot", layout).height());
 
         $(".fixedContainer > .fixedTable", layout).height(scrollAreaHeight);
         // remove 16px for horizontal scrollbar height
-        $("." + options.classColumn + " > .fixedTable", layout).height(scrollAreaHeight - 16);
+        $(".fixedColumn > .fixedTable", layout).height(scrollAreaHeight - 16);
     }
 
-    function setColumnWidths(mainid, layout, options)
+    function setColumnWidths(layout, options)
     {
         setFixedColumnWidths(layout, options);
-        //TODO: why do we need this array? 
+        //TODO: why do we need this array?
         var widthArray = new Array();
         var totall = 0;
 
-        $(mainid + " .fixedContainer ." + options.classHeader + " table tr:first td").each(function(pos)
+        $(" .fixedContainer .fixedHead > table > tbody > tr:first > td", layout).each(function(pos)
         {
             var cwidth = $(this).width();
-            var bodyColumn = $(mainid + " .fixedContainer .fixedTable table tbody td:eq(" + pos + ")");
-            cwidth = Math.max(cwidth, $(bodyColumn).width());
+            var bodyColumn = $(" .fixedContainer .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
+            var contentWidth = $(bodyColumn).width();
+            cwidth = Math.max(cwidth, contentWidth, options.minColumnWidth);
             widthArray[pos] = cwidth;
+            // TODO: why +2?
             totall += (cwidth + 2);
         });
 
         //TODO: why +100? just to force scroll bars?
-        $(mainid + " .fixedContainer ." + options.classHeader + " table").width(totall + 100);
-        $(mainid + " .fixedContainer .fixedTable table").width(totall + 100);
-        $(mainid + " .fixedContainer ." + options.classFooter + " table").width(totall + 100);
+        $(".fixedContainer .fixedHead > table", layout).width(totall + 100);
+        $(".fixedContainer .fixedTable > table", layout).width(totall + 100);
+        $(".fixedContainer .fixedFoot > table", layout).width(totall + 100);
         for ( var i = 0; i < widthArray.length; i++ )
         {
-            $(mainid + " .fixedContainer ." + options.classHeader + " table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
-            $(mainid + " .fixedContainer .fixedTable table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
-            $(mainid + " .fixedContainer ." + options.classFooter + " table tr td:eq(" + i + ")").attr("width", widthArray[i] + "px");
+            setFixedWidth($(".fixedContainer .fixedHead > table > tbody > tr > td:eq(" + i + ")", layout), widthArray[i]);
+            setFixedWidth($(".fixedContainer .fixedTable > table > tbody > tr > td:eq(" + i + ")", layout), widthArray[i]);
+            setFixedWidth($(".fixedContainer .fixedFoot > table > tbody > tr > td:eq(" + i + ")", layout), widthArray[i]);
         }
     }
 
     function setFixedColumnWidths(layout, options)
     {
-        $("." + options.classColumn + " > ." + options.classHeader + " > table > tbody > tr:first > td", layout).each(function(pos)
+        $(".fixedColumn > .fixedHead > table > tbody > tr:first > td", layout).each(function(pos)
         {
-            var tblCell = $("." + options.classColumn + " > .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
-            var tblFoot = $("." + options.classColumn + " > ." + options.classFooter + " > table > tbody > tr:first > td:eq(" + pos + ")", layout);
+            var tblCell = $(".fixedColumn > .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
+            var tblFoot = $(".fixedColumn > .fixedFoot > table > tbody > tr:first > td:eq(" + pos + ")", layout);
 
             //something funky requires the 2 offset. cant place it...
             var width = options.fixedColumnWidth - 2;
 
-            $(this).width(width);
-            $(tblCell).width(width);
-            $(tblFoot).width(width);
+            // we want fixedColumn widths to be total widths (i.e., include padding in width)
+            var headerPadding = $(this).innerWidth() - $(this).width();
+            setFixedWidth(this, width - headerPadding);
+
+            var colPadding = $(tblCell).innerWidth() - $(tblCell).width();
+            setFixedWidth(tblCell, width - colPadding);
+
+            var footerPadding = $(tblFoot).innerWidth() - $(tblFoot).width();
+            setFixedWidth(tblFoot, width - footerPadding);
+        });
+    }
+
+    function setFixedWidth(object, width)
+    {
+        $(object).css({
+            width: (width) + "px",
+            "max-width": (width) + "px",
+            "min-width": (width) + "px"
         });
     }
 })(jQuery);
