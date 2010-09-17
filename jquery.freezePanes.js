@@ -26,11 +26,16 @@
 
     $.fn.freezePanes = function(opts) {
         var options = $.extend({}, freezePanesDefaults, opts);
+
         var originalTable = this;
 
         var layout = buildLayout(originalTable, options);
 
         var scrollAreaWidth = options.width - options.fixedColumnWidth;
+
+        // trick to at least TRY to make it normal looking
+        // That way 2-column tables don't need horizontal scrolling...
+        $(this).css({ width: scrollAreaWidth });
 
         $(".fixedContainer .fixedHead", layout).css({
             width: (scrollAreaWidth) + "px",
@@ -69,7 +74,7 @@
         });
 
         adjustSizes(layout, options);
-        applyScrollHandler(layout, options);
+        applyScrollHandler(layout);
 
         return layout;
     };
@@ -155,14 +160,14 @@
         }
     }
 
-    function applyScrollHandler(layout, options)
+    function applyScrollHandler(layout)
     {
         $(".fixedContainer > .fixedTable", layout).scroll(function() {
             var tblarea = $(".fixedContainer > .fixedTable", layout);
-            var x = tblarea[0].scrollLeft;
-            var y = tblarea[0].scrollTop;
 
-            $(".fixedColumn > .fixedTable", layout)[0].scrollTop = y;
+            $(".fixedColumn > .fixedTable", layout)[0].scrollTop = tblarea[0].scrollTop;
+
+            var x = tblarea[0].scrollLeft;
             $(".fixedContainer > .fixedHead", layout)[0].scrollLeft = x;
             $(".fixedContainer > .fixedFoot", layout)[0].scrollLeft = x;
         });
@@ -171,7 +176,7 @@
     function adjustSizes(layout, options)
     {
         setScrollingAreaHeights(layout, options);
-        setRowHeights(layout, options);
+        setRowHeights(layout);
         setColumnWidths(layout, options);
         adjustTablesForScrollBars(layout, options);
     }
@@ -198,7 +203,7 @@
         }
     }
 
-    function setRowHeights(layout, options)
+    function setRowHeights(layout)
     {
         // Body
         $(".fixedColumn .fixedTable > table > tbody > tr", layout).each(function(i) {
@@ -242,25 +247,23 @@
     function setColumnWidths(layout, options)
     {
         setFixedColumnWidths(layout, options);
-        //TODO: why do we need this array?
+
         var widthArray = new Array();
-        var totall = 0;
+        var totalLength = 0;
 
         $(" .fixedContainer .fixedHead > table > tbody > tr:first > td", layout).each(function(pos)
         {
-            var cwidth = $(this).width();
+            var headerColumnWidth = $(this).outerWidth();
             var bodyColumn = $(" .fixedContainer .fixedTable > table > tbody > tr:first > td:eq(" + pos + ")", layout);
-            var contentWidth = $(bodyColumn).width();
-            cwidth = Math.max(cwidth, contentWidth, options.minColumnWidth);
-            widthArray[pos] = cwidth;
-            // TODO: why +2?
-            totall += (cwidth + 2);
+            var contentWidth = $(bodyColumn).outerWidth();
+            headerColumnWidth = Math.max(headerColumnWidth, contentWidth, options.minColumnWidth);
+            widthArray[pos] = headerColumnWidth;
+            totalLength += headerColumnWidth;
         });
 
-        //TODO: why +100? just to force scroll bars?
-        $(".fixedContainer .fixedHead > table", layout).width(totall + 100);
-        $(".fixedContainer .fixedTable > table", layout).width(totall + 100);
-        $(".fixedContainer .fixedFoot > table", layout).width(totall + 100);
+        $(".fixedContainer .fixedHead > table", layout).width(totalLength);
+        $(".fixedContainer .fixedTable > table", layout).width(totalLength);
+        $(".fixedContainer .fixedFoot > table", layout).width(totalLength);
         for ( var i = 0; i < widthArray.length; i++ )
         {
             setFixedWidth($(".fixedContainer .fixedHead > table > tbody > tr > td:eq(" + i + ")", layout), widthArray[i]);
